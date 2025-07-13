@@ -117,14 +117,14 @@ int main(void)
   //bldc_driver_set_enable_pin(&md1, MOT0_EN_GPIO_Port, MOT0_EN_Pin);
 
   bldc_motor_init(&m1, &md1, &as1);
-  bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY_OPENLOOP);
-  //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP);
+  //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY_OPENLOOP);
+  bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP);
   //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY);
   bldc_motor_set_motor_parameters(&m1, 7, 360, 0.4f);
   bldc_motor_set_pid(&m1, 1.0f, 1.0f, 0.0f);
   bldc_motor_set_voltage_limit(&m1, 0.25f);
   bldc_motor_set_speed_limit(&m1, 1.0f);
-  bldc_motor_set_target_speed(&m1, 4.0f);
+  bldc_motor_set_target_speed(&m1, 2.0f);
   bldc_motor_set_target_angle_deg(&m1, 90.0f);
 
   bldc_driver_enable(&md1);
@@ -165,6 +165,23 @@ int main(void)
 
 	  bldc_motor_move(&m1, dt);
 	  tim_dt += dt;
+	  sum_dt += dt;
+	  	  if(sum_dt > 2.0f) {
+	  		  sum_dt = 0.0f;
+	  		  /*
+	  		  if(m1.target.speed_rot_s > 1.1f) {
+	  			  bldc_motor_set_target_speed(&m1, 1.0f);
+	  		  }
+	  		  else {
+	  			  bldc_motor_set_target_speed(&m1, 2.0f);
+	  		  }
+	  		  */
+	  		  m1.calc.shaft_angle_deg = 0;
+	  		  m1.calc.shaft_angle_deg_old = 0;
+	  		  bldc_motor_set_target_angle_deg(&m1, 150.0f);
+	  		  bldc_motor_enable(&m1);
+	  	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

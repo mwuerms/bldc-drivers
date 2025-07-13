@@ -8,30 +8,28 @@
 #define _CALCS__H_
 
 #include "project.h"
-#include "math.h"
 
-#define CALC_MATH_SINF(a) sinf(a)
-
-/**
- * get sin (float) from angle in deg using look up table, might be faster
- * @param angle_deg 0.0f ... 359.9999f, if angle_deg is outside +/- 360.0f to get into boundaries
- * @return sinus
- */
-float calc_lut_sinf(float angle_deg);
+#define DEG_TO_RAD(a) (a*M_PI/180.0f)
+#define RAD_TO_DEG(a) (a*180.0f/M_PI)
 
 /**
- * get sin values directly via index n from look up table
- * sin_lut[] 0 ... 0.5f
- * @param n index 0 ... 359
- * @return sin from lut
+ * calc angle velocity in rad/s from rotation in speed 1/s
  */
-float calc_sinf_from_lut(uint16_t n);
+float calc_angle_rad_s_from_rotation_speed_rot_s(float speed_rot_s);
 
 /**
- * calc absolute of float value
+ * calc rotation speed in 1/s from angle velocity in rad/s
  */
-float calc_absf(float value);
-float calc_angle_velocity_from_rotation_speed(float speed_rot_s);
-float calc_rotation_speed_from_angle_velocity(float angle_deg_s);
+float calc_rotation_speed_rot_s_from_angle_rad_s(float angle_rad_s);
+
+/**
+ * constrain a float value in between min and max values
+ */
+float calc_constrain_float_to_min_max_values(float value, float min_value, float max_value);
+
+/**
+ * prevent a float value from overvlow, + or - full if outside boundaries
+ */
+float calc_prevent_float_to_overflow(float value, float min_value, float max_value, float full);
 
 #endif // _CALCS__H_

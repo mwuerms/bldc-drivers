@@ -1,5 +1,5 @@
+* Martin Egli
 /**
- * Martin Egli
  * 2025-06-29
  * bldc motor module
  */
@@ -11,6 +11,7 @@
 #include "project.h"
 #include "bldc_driver.h"
 #include "angle_sensor.h"
+#include "pid.h"
 
 //#ifndef STM32F103xB
 #ifndef STM32G431xx
@@ -23,22 +24,29 @@ typedef struct {
     bldc_driver_t *d;
     angle_sens_t *as;
     struct {
-        float angle_deg; /// target angle in deg
-        float speed_rot_s; /// target speed in rotation / s
-        /// deleted target angle velocity in deg / s, this is redundant information, calc from speed_rot_s
+        float angle_rad; /// target angle in rad
+        //float speed_rot_s; /// target speed in rotation / s
+        float speed_rad_s; /// target speed in rad / s
     } target;
     struct {
-        float angle_deg; /// current angle in deg
-        float angle_deg_old;
-        float delta_angle_deg;
-		float angle_deg_s; /// current angle velocity in deg / s
-        float el_angle_deg;
+        float angle_rad; /// current angle in rad
+        float angle_rad_old;
+        float delta_angle_rad;
+		float speed_rad_s; /// current speed, angle velocity in rad / s
+        float u_in, v_in, w_in; /// input to clarke transformation
     } current;
     struct {
-        float shaft_angle_deg; /// 
-        float shaft_angle_deg_old; /// 
-        float el_angle_deg; /// 
-        float el_angle_deg_old; /// 
+        float shaft_angle_rad; /// 
+        float shaft_angle_rad_old; /// 
+        float el_angle_rad; /// 
+        float el_angle_rad_old; ///
+        float alpha_in, beta_in; /// clarke transformation: calc alpha + beta from u, v, w
+        float alpha_out, beta_out; /// inverse clarke transformation: calc u, v, w from alpha + beta
+        float u_out, v_out, w_out; /// result from inverse clarke transformation
+        float q_in, d_in; /// park transformation, calc d, q from alpha + beta
+        float q_out, d_out; /// inverse park transformation, calc alpha + beta from d, q
+        float q_velocity_out; // result of velocity pid
+        
     } calc; /// for calculating purposes
     struct {
         float voltage;
@@ -50,11 +58,9 @@ typedef struct {
         float coil_resistance;
     } motor;
     struct {
-        float kp;
-        float ki;
-        float integrator;
-        float kd;
-        float differentiator;
+        pid_t angle;
+        pid_t speed;
+        pid_t iq, id;
     } pid;
     struct {
         float iq, id;
@@ -72,10 +78,6 @@ typedef struct {
 #define BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP (1)
 #define BLDC_MOTOR_CTRL_TYPE_VELOCITY (2)
 #define BLDC_MOTOR_CTRL_TYPE_ANGLE (3)
-/*#define BLDC_MOTOR_CTRL_TYPE_VOLTAGE (4)
-#define BLDC_MOTOR_CTRL_TYPE_FOC_CURRENT (5)
-#define BLDC_MOTOR_CTRL_TYPE_TORQUE (6)
-#define BLDC_MOTOR_CTRL_TYPE_ANGLE (7)*/
 
 extern float dbg_el;
 extern float dbg_va;
@@ -88,7 +90,10 @@ extern float dbg_uw;
 uint16_t bldc_motor_init(bldc_motor_t *m, bldc_driver_t *d, angle_sens_t *as);
 uint16_t bldc_motor_set_motor_parameters(bldc_motor_t *m, uint16_t pp, float kv, float coil_res);
 uint16_t bldc_motor_set_ctrl_type(bldc_motor_t *m, uint16_t ctype);
-uint16_t bldc_motor_set_pid(bldc_motor_t *m, float kp, float ki, float kd);
+uint16_t bldc_motor_set_angle_pid(bldc_motor_t *m, float kp, float ki, float kd);
+uint16_t bldc_motor_set_speed_pid(bldc_motor_t *m, float kp, float ki, float kd);
+uint16_t bldc_motor_set_iq_pid(bldc_motor_t *m, float kp, float ki, float kd);
+uint16_t bldc_motor_set_id_pid(bldc_motor_t *m, float kp, float ki, float kd);
 uint16_t bldc_motor_set_voltage_limit(bldc_motor_t *m, float voltage_limit);
 uint16_t bldc_motor_set_speed_limit(bldc_motor_t *m, float speed);
 uint16_t bldc_motor_set_target_speed(bldc_motor_t *m, float speed);
