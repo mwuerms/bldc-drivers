@@ -121,7 +121,12 @@ int main(void)
   bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP);
   //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY);
   bldc_motor_set_motor_parameters(&m1, 7, 360, 0.4f);
-  bldc_motor_set_pid(&m1, 1.0f, 1.0f, 0.0f);
+
+  bldc_motor_set_id_pid(&m1, 1.0f, 1.0f, 0.0f);
+  bldc_motor_set_iq_pid(&m1, 1.0f, 1.0f, 0.0f);
+  bldc_motor_set_angle_pid(&m1, 1.0f, 1.0f, 0.0f);
+  bldc_motor_set_speed_pid(&m1, 1.0f, 1.0f, 0.0f);
+
   bldc_motor_set_voltage_limit(&m1, 0.25f);
   bldc_motor_set_speed_limit(&m1, 1.0f);
   bldc_motor_set_target_speed(&m1, 2.0f);
@@ -176,9 +181,9 @@ int main(void)
 	  			  bldc_motor_set_target_speed(&m1, 2.0f);
 	  		  }
 	  		  */
-	  		  m1.calc.shaft_angle_deg = 0;
-	  		  m1.calc.shaft_angle_deg_old = 0;
-	  		  bldc_motor_set_target_angle_deg(&m1, 150.0f);
+	  		  m1.calc.shaft_angle_rad = 0;
+	  		  m1.calc.shaft_angle_rad_old = 0;
+	  		  bldc_motor_set_target_angle_deg(&m1, 90.0f);
 	  		  bldc_motor_enable(&m1);
 	  	  }
 

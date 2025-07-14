@@ -6,6 +6,7 @@
 
 #include "pid.h"
 #include <stddef.h>
+#include <stdbool.h>
 
 uint16_t pid_set(pid_t *p, float kp, float ki, float kd) {
     if(p == NULL) {

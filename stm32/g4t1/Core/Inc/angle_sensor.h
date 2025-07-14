@@ -19,6 +19,7 @@ typedef struct {
         uint16_t buf_len;
     } i2c;*/
     float angle_deg, angle_deg2; // 0 ... 359.9
+    float angle_rad;
     uint16_t raw_angle;
     uint16_t type;
 } angle_sens_t;

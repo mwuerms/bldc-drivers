@@ -1,5 +1,5 @@
-* Martin Egli
 /**
+ * Martin Egli
  * 2025-06-29
  * bldc motor module
  */
@@ -34,6 +34,7 @@ typedef struct {
         float delta_angle_rad;
 		float speed_rad_s; /// current speed, angle velocity in rad / s
         float u_in, v_in, w_in; /// input to clarke transformation
+        float el_angle_rad; ///
     } current;
     struct {
         float shaft_angle_rad; /// 
@@ -50,7 +51,7 @@ typedef struct {
     } calc; /// for calculating purposes
     struct {
         float voltage;
-        float speed_rot_s; /// limit speed in rotation / s
+        float speed_rad_s; /// limit speed in rotation / s
     } limit;
     struct {
         uint16_t nb_pole_pairs;
@@ -98,7 +99,6 @@ uint16_t bldc_motor_set_voltage_limit(bldc_motor_t *m, float voltage_limit);
 uint16_t bldc_motor_set_speed_limit(bldc_motor_t *m, float speed);
 uint16_t bldc_motor_set_target_speed(bldc_motor_t *m, float speed);
 uint16_t bldc_motor_set_target_angle_deg(bldc_motor_t *m, float angle_deg);
-//uint16_t bldc_motor_set_pid(bldc_motor_t *m, 
 
 uint16_t bldc_motor_enable(bldc_motor_t *m);
 uint16_t bldc_motor_disable(bldc_motor_t *m);

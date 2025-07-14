@@ -101,8 +101,7 @@ uint16_t bldc_motor_set_speed_limit(bldc_motor_t *m, float speed) {
         // error, invalid motor
         return false;
     }
-    use calc_rotation_speed_rot_s_from_angle_rad_s();
-    m->limit.speed_rot_s = speed;
+	m->limit.speed_rad_s = speed * 2* M_PI; //calc_angle_rad_s_from_rotation_speed_rot_s(speed);
     return true;
 }
 
@@ -111,8 +110,7 @@ uint16_t bldc_motor_set_target_speed(bldc_motor_t *m, float speed) {
         // error, invalid motor
         return false;
     }
-    use calc_rotation_speed_rot_s_from_angle_rad_s();
-    m->target.speed_rot_s = speed;
+	m->target.speed_rad_s = speed * 2* M_PI;//calc_angle_rad_s_from_rotation_speed_rot_s(speed);
     return true;
 }
 
@@ -121,7 +119,7 @@ uint16_t bldc_motor_set_target_angle_deg(bldc_motor_t *m, float angle_deg) {
         // error, invalid motor
         return false;
     }
-    m->target.angle_deg = angle_deg;
+    m->target.angle_rad = DEG_TO_RAD(angle_deg);
     return true;
 }
 
@@ -191,6 +189,76 @@ static uint16_t bldc_motor_drive_phase_voltage(bldc_motor_t *m, float vq, float 
 	return bldc_driver_set_phase_voltages(m->d, uu, uv, uw);
 }
 
+
+
+
+uint16_t bldc_motor_svpwm(bldc_motor_t *m, float alpha, float beta) {
+    if(m == NULL) {
+        // error, invalid motor
+        return false;
+    }
+    // alpha, beta (kartesian) to polar
+    float mag = sqrt(alpha*alpha + beta*beta);
+    float angle_rad = atan2(beta, alpha);
+
+    // get sector of angle_rad
+    uint16_t sector = 4;
+    if(     (angle_rad >=      0.0f) && (angle_rad < +1/3*M_PI)) sector = 1;
+    else if((angle_rad >= +1/3*M_PI) && (angle_rad < +2/3*M_PI)) sector = 2;
+    else if((angle_rad >= +2/3*M_PI) && (angle_rad < +3/3*M_PI)) sector = 3;
+    else if((angle_rad >= -1/3*M_PI) && (angle_rad <      0.0f)) sector = 6;
+    else if((angle_rad >= -2/3*M_PI) && (angle_rad < -1/3*M_PI)) sector = 5;
+    else sector = 4;
+
+    // calc basic timings
+    float t0, t1, t2;
+    float tu, tv, tw;
+    float angle_sector = angle_rad -(sector - 1) * M_PI/3;
+    t1 = mag * sin(M_PI/3 - angle_sector) / SQRT3;
+    t2 = mag * sin(angle_sector) / SQRT3;
+    t0 = 1 - t1 - t2;
+
+    // calc timings according to sector
+    switch(sector) {
+        case 1:
+            tu = (t1 + t2 + t0/2);
+            tv = (t2 + t0/2);
+            tw = (t0/2);
+            break;
+        case 2:
+            tu = (t1 + t0/2);
+            tv = (t1 + t2 + t0/2);
+            tw = (t2 + t0/2);
+            break;
+        case 3:
+            tu = (t0/2);
+            tv = (t1 + t2 + t0/2);
+            tw = (t2 + t0/2);
+            break;
+        case 4:
+            tu = (t0/2);
+            tv = (t1 + t0/2);
+            tw = (t1 + t2 + t0/2);
+            break;
+        case 5:
+            tu = (t2 + t0/2);
+            tv = (t0/2);
+            tw = (t1 + t2 + t0/2);
+            break;
+        case 6:
+            tu = (t1 + t2 + t0/2);
+            tv = (t0/2);
+            tw = (t1 + t0/2);
+            break;
+    }
+
+    m->calc.u_out = tu;
+    m->calc.v_out = tv;
+    m->calc.w_out = tw;
+    return bldc_driver_set_phase_voltages(m->d, tu, tv, tw);
+}
+
+
 static uint16_t bldc_motor_velocity_openloop(bldc_motor_t *m, float dt) {
     m->calc.shaft_angle_rad = m->target.speed_rad_s * dt + m->calc.shaft_angle_rad_old;
     calc_prevent_float_to_overflow(m->calc.shaft_angle_rad, 0.0f, 2*M_PI, 2*M_PI);
@@ -199,26 +267,26 @@ static uint16_t bldc_motor_velocity_openloop(bldc_motor_t *m, float dt) {
     m->calc.shaft_angle_rad_old = m->calc.shaft_angle_rad;
     m->calc.el_angle_rad_old = m->calc.el_angle_rad;
 
-	return bldc_motor_drive_phase_voltage(m, m->set.vq, 0, m->calc.el_angle_rad);
+    return bldc_motor_drive_phase_voltage(m, m->set.vq, 0, m->calc.el_angle_rad);
+
+    m->calc.d_out = m->set.vq * sin(m->calc.el_angle_rad);
+    m->calc.q_out = m->set.vq * cos(m->calc.el_angle_rad);
+    bldc_calc_inv_park_transform(m);
+    return bldc_motor_svpwm(m, m->calc.alpha_out, m->calc.beta_out);
 }
 
 static uint16_t bldc_motor_angle_openloop(bldc_motor_t *m, float dt) {
-	float error = (m->target.angle_deg) - m->calc.shaft_angle_deg;
-	if(fabsf(error) < 0.2f) {
+	float error = (m->target.angle_rad) - m->calc.shaft_angle_rad;
+	if(fabsf(error) < (0.02f * M_PI)) {
 		// error is small enough, do not continue
 		//bldc_motor_disable(m);
 		//return true;
-		m->target.speed_rot_s = 0;
-		return bldc_motor_velocity_openloop(m, dt);
+		m->target.speed_rad_s = 0;
+		return true;
 	}
-	float angle_deg_s = error / dt; // angle velocity needed
-	if(fabsf(angle_deg_s) > calc_angle_velocity_from_rotation_speed(m->limit.speed_rot_s)) {
-		m->target.speed_rot_s = m->limit.speed_rot_s;
-	}
-	else {
-		m->target.speed_rot_s = calc_rotation_speed_from_angle_velocity(angle_deg_s);
-	}
-    return bldc_motor_velocity_openloop(m, dt);
+	float angle_rad_s = error / dt; // angle velocity needed
+	m->target.speed_rad_s = calc_constrain_float_to_min_max_values(angle_rad_s, -m->limit.speed_rad_s, +m->limit.speed_rad_s);
+    return true;
 }
 
 static uint16_t bldc_motor_torque_pid(bldc_motor_t *m, float dt) {
@@ -230,9 +298,8 @@ static uint16_t bldc_motor_torque_pid(bldc_motor_t *m, float dt) {
 }
 
 static uint16_t bldc_motor_velocity_pid(bldc_motor_t *m, float dt) {
-    float target_speed_rad_s = calc_angle_velocity_from_rotation_speed(m->target.speed_rot_s);
     // pid(target.speed - current.angle_rot_s)-> (q_velocity_out)
-    m->calc.q_velocity_out = pid_process(&(m->pid.speed), (target_speed_rad_s - m->current.speed_rad_s), dt);
+    m->calc.q_velocity_out = pid_process(&(m->pid.speed), (m->target.speed_rad_s - m->current.speed_rad_s), dt);
     return true;
 }
 static uint16_t bldc_motor_angle_pid(bldc_motor_t *m, float dt) {
@@ -248,16 +315,16 @@ static uint16_t a1i = 0;
 static uint16_t a1n = 0;
 static uint16_t a1st = 2;
 
-static uint16_t bldc_motor_get_sensor_values(bldc_motor_t *t) {
+static uint16_t bldc_motor_get_sensor_values(bldc_motor_t *m, float dt) {
     // get angle
     /*if(angle_sensor_get(m->as) == false) {
         // error, no valid angle value
     	return false;
     }*/
-    m->current.angle_deg = m->as->angle_deg;
-    m->current.angle_deg = 10.0f;
+	m->as->angle_rad = 0.5f;
+    m->current.angle_rad = m->as->angle_rad;
 
-    a1[a1n] = m->current.angle_deg;
+    a1[a1n] = m->current.angle_rad;
 	a1n++;
 	if(a1n >= A1_SIZE) {
 		a1n = 0;
@@ -266,24 +333,24 @@ static uint16_t bldc_motor_get_sensor_values(bldc_motor_t *t) {
 	for(a1i = 0; a1i < A1_SIZE; a1i++) {
 		a1_sum += a1[a1i];
 	}
-	m->current.angle_deg = a1_sum/A1_SIZE;
+	m->current.angle_rad = a1_sum/A1_SIZE;
 
     // calc angle and angle velocity
-    m->current.delta_angle_deg = (m->current.angle_deg - m->current.angle_deg_old);
+    m->current.delta_angle_rad = (m->current.angle_rad - m->current.angle_rad_old);
     // limit
-    m->current.delta_angle_deg = calc_prevent_float_to_overflow(m->current.delta_angle_deg, -180.0f, +180.0f, 360.0f);
+    m->current.delta_angle_rad = calc_prevent_float_to_overflow(m->current.delta_angle_rad, 0.0f, 2*M_PI, 2*M_PI);
 	if(a1st) {
 		a1st--;
-		m->current.angle_deg_s = 0.0f;
+		m->current.speed_rad_s = 0.0f;
 	}
 	else {
-		m->current.angle_deg_s = m->current.delta_angle_deg / dt;
+		m->current.speed_rad_s = m->current.delta_angle_rad / dt;
 	}
 
 
-    m->current.el_angle_deg = m->current.angle_deg * m->motor.nb_pole_pairs;
-    m->current.angle_deg_old = m->current.angle_deg;
-    // get current
+    m->current.el_angle_rad = m->current.angle_rad * m->motor.nb_pole_pairs;
+    m->current.angle_rad_old = m->current.angle_rad;
+    // get u, v, w coil currents
     return true;
 }
 
@@ -296,7 +363,7 @@ uint16_t bldc_motor_move(bldc_motor_t *m, float dt) {
         // is disabled, stop here
         return false;
     }
-    bldc_motor_get_sensor_values(m);
+    bldc_motor_get_sensor_values(m, dt);
 
     switch(m->ctrl.type) {
         case BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP: 
@@ -313,20 +380,21 @@ uint16_t bldc_motor_move(bldc_motor_t *m, float dt) {
         case BLDC_MOTOR_CTRL_TYPE_VELOCITY:
             bldc_motor_velocity_pid(m, dt);
             // (u_in, v_in, w_in) -> (alpha_in, beta_in)
-            bldc_utils_calc_clarke_transform(m);
+            bldc_calc_clarke_transform(m);
             // (alpha_in, beta_in) -> (d_in, q_in)
-            bldc_utils_calc_park_transform(m);
+            bldc_calc_park_transform(m);
         	bldc_motor_torque_pid(m, dt);
             // (d_out, q_out) -> (alpha_out, beta_out)
-            bldc_utils_calc_inv_park_transform(m);
+            bldc_calc_inv_park_transform(m);
             // (alpha_out, beta_out) -> (u_out, v_out, w_out)
-            bldc_utils_calc_inv_clarke_transform(m);
+            //bldc_utils_calc_inv_clarke_transform(m);
+            bldc_motor_svpwm(m, m->calc.alpha_out, m->calc.beta_out);
 
             dbg_uu = m->calc.u_out;
             dbg_uv = m->calc.v_out;
             dbg_uw = m->calc.w_out;
 
-            return bldc_driver_set_phase_voltages(m->d, m->calc.u_out, m->calc.v_out, m->calc.w_out);
+            return true;//bldc_driver_set_phase_voltages(m->d, m->calc.u_out, m->calc.v_out, m->calc.w_out);
     }
     // error, shall not reach here, this means no ctrl.type was set
     return false;
