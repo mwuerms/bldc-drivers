@@ -29,6 +29,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32g4xx_hal.h"
 
+#include "stm32g4xx_ll_adc.h"
+#include "stm32g4xx_ll_opamp.h"
 #include "stm32g4xx_ll_rcc.h"
 #include "stm32g4xx_ll_bus.h"
 #include "stm32g4xx_ll_crs.h"
@@ -70,6 +72,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define AS_EN_Pin LL_GPIO_PIN_6
+#define AS_EN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
