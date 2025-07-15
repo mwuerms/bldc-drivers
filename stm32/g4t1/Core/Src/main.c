@@ -109,7 +109,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  uart_init(&u1, USART1);
+  uart_init(&u1, USART2);
 
   angle_sensor_init(&as1, &hi2c1);
 
@@ -117,8 +117,8 @@ int main(void)
   //bldc_driver_set_enable_pin(&md1, MOT0_EN_GPIO_Port, MOT0_EN_Pin);
 
   bldc_motor_init(&m1, &md1, &as1);
-  //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY_OPENLOOP);
-  bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP);
+  bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY_OPENLOOP);
+  //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_ANGLE_OPENLOOP);
   //bldc_motor_set_ctrl_type(&m1, BLDC_MOTOR_CTRL_TYPE_VELOCITY);
   bldc_motor_set_motor_parameters(&m1, 7, 360, 0.4f);
 
@@ -135,7 +135,7 @@ int main(void)
   bldc_driver_enable(&md1);
   //bldc_driver_set_pwm(&md1, 100, 200, 300);
   bldc_motor_enable(&m1);
-  m1.set.vq = 0.35f;
+  m1.set.vq = 0.8f;
 
   //while(1);
 
@@ -146,12 +146,12 @@ int main(void)
 
   now = HAL_GetTick();
   last_tick = now;
-  //uart_send_string_blocking(&u1, "hello from the other side :-D\n");
+  uart_send_string_blocking(&u1, "hello from the other side :-D\n");
   angle_sensor_get(&as1);
   str_buf_clear(main_str_buf, MAIN_STR_BUF_SIZE);
   str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, as1.raw_angle);
   str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, "\n");
-  //uart_send_string_blocking(&u1, main_str_buf);
+  uart_send_string_blocking(&u1, main_str_buf);
   waitcnt = 1;//0000;
   sum_dt = 0.0f;
   tim_dt = 0.0f;
@@ -169,6 +169,27 @@ int main(void)
 	  last_tick = now;
 
 	  bldc_motor_move(&m1, dt);
+
+	  str_buf_clear(main_str_buf, MAIN_STR_BUF_SIZE);
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, tim_dt, 6);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.el_angle_rad, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.d_out, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.q_out, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.u_out, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.v_out, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.w_out, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, "\n");
+	  uart_send_string_blocking(&u1, main_str_buf);
+
+
 	  tim_dt += dt;
 	  sum_dt += dt;
 	  	  if(sum_dt > 2.0f) {
