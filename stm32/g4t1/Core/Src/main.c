@@ -119,6 +119,8 @@ int main(void)
   uart_init(&u1, USART2);
 
   angle_sensor_init(&as1, &hi2c1);
+  angle_sensor_set_enable_pin(&as1, AS_EN_GPIO_Port, AS_EN_Pin);
+  angle_sensor_disable(&as1);
 
   bldc_driver_init(&md1, TIM1);
   //bldc_driver_set_enable_pin(&md1, MOT0_EN_GPIO_Port, MOT0_EN_Pin);
@@ -136,13 +138,14 @@ int main(void)
 
   bldc_motor_set_voltage_limit(&m1, 0.25f);
   bldc_motor_set_speed_limit(&m1, 1.0f);
-  bldc_motor_set_target_speed(&m1, 2.0f);
+  bldc_motor_set_target_speed(&m1, 10.0f);
   bldc_motor_set_target_angle_deg(&m1, 90.0f);
 
+  angle_sensor_enable(&as1);
   bldc_driver_enable(&md1);
   //bldc_driver_set_pwm(&md1, 100, 200, 300);
   bldc_motor_enable(&m1);
-  m1.set.vq = 0.8f;
+  m1.set.vq = 1.1f;
 
   //while(1);
 
@@ -182,6 +185,9 @@ int main(void)
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.el_angle_rad, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, as1.raw_angle);
+	  //str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.angle_rad, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.d_out, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.q_out, 5);
@@ -209,10 +215,11 @@ int main(void)
 	  			  bldc_motor_set_target_speed(&m1, 2.0f);
 	  		  }
 	  		  */
-	  		  m1.calc.shaft_angle_rad = 0;
+	  		  /*m1.calc.shaft_angle_rad = 0;
 	  		  m1.calc.shaft_angle_rad_old = 0;
 	  		  bldc_motor_set_target_angle_deg(&m1, 90.0f);
 	  		  bldc_motor_enable(&m1);
+	  		  */
 	  	  }
 
     /* USER CODE END WHILE */

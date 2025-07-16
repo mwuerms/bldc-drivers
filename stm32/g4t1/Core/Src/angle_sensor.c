@@ -5,10 +5,10 @@
  */
 
 #include "angle_sensor.h"
-//#include "i2c.h"
+#include "i2c.h"
+#include <math.h>
 
 // - public functions ----------------------------------------------------------
-#if 0
 uint16_t angle_sensor_init(angle_sens_t *as, I2C_HandleTypeDef *hi2c) {
 	if(as == NULL) {
 		// error, invalid sensor
@@ -22,6 +22,34 @@ uint16_t angle_sensor_init(angle_sens_t *as, I2C_HandleTypeDef *hi2c) {
 	as->type = ANGLE_SENSOR_TYPE_AS5600;
 	as->i2c.addr = AS5600_I2C_ADDR;
 
+	return true;
+}
+
+uint16_t angle_sensor_set_enable_pin(angle_sens_t *as, GPIO_TypeDef *port, uint32_t pm) {
+	if(as == NULL) {
+		// error, invalid sensor
+		return false;
+	}
+	as->as_en.gpio_port = port;
+	as->as_en.pin_mask = pm;
+	LL_GPIO_SetOutputPin(as->as_en.gpio_port, as->as_en.pin_mask);
+	return true;
+}
+uint16_t angle_sensor_enable(angle_sens_t *as) {
+	if(as == NULL) {
+		// error, invalid sensor
+		return false;
+	}
+	LL_GPIO_SetOutputPin(as->as_en.gpio_port, as->as_en.pin_mask);
+	return true;
+}
+
+uint16_t angle_sensor_disable(angle_sens_t *as) {
+	if(as == NULL) {
+		// error, invalid sensor
+		return false;
+	}
+	LL_GPIO_ResetOutputPin(as->as_en.gpio_port, as->as_en.pin_mask);
 	return true;
 }
 
@@ -48,36 +76,3 @@ uint16_t angle_sensor_get(angle_sens_t *as) {
 
     return true;
 }
-#endif
-
-/*
-uint16_t angle_sensor_init(angle_sens_t *as, I2C_TypeDef *hi2c) {
-    if(as == NULL) {
-        // error, invalid sensor
-        return false;
-    }
-    if(hi2c == NULL) {
-        // error, invalid i2c device
-        return false;
-    }
-    as->i2c.hi2c = hi2c;
-    as->type = ANGLE_SENSOR_TYPE_AS5600;
-    as->i2c.addr = AS5600_I2C_ADDR;
-    return true;
-}
-
-uint16_t angle_sensor_get(angle_sens_t *as) {
-    uint8_t buf[8];
-    if(as == NULL) {
-        // error, invalid sensor
-        return false;
-    }
-    as->i2c.buf[0] = 0x0C;
-    as->i2c.buf_len = 1;
-    i2c_wr_blocking(as->i2c.hi2c, as->i2c.addr, as->i2c.buf, as->i2c.buf_len);
-    as->i2c.buf_len = i2c_rd_blocking(as->i2c.hi2c, as->i2c.addr, as->i2c.buf, 2);
-    as->raw_angle = ((uint16_t*)&buf[0])[0];
-    as->angle_deg = (360 * as->raw_angle)/4096;
-    return true;
-}
-*/
