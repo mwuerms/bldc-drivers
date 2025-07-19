@@ -25,8 +25,8 @@ typedef struct {
 	} as_en;
     float angle_rad;
     uint16_t raw_angle;
-    float angle_rad_filt;
-    ffilter_t rf;
+    float angle_rad_filtered;
+    ffir_t frad; // filter angle_rad
     uint16_t type;
 } angle_sens_t;
 

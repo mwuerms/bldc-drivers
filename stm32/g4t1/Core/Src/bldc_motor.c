@@ -259,7 +259,7 @@ static uint16_t bldc_motor_velocity_openloop(bldc_motor_t *m, float dt) {
     m->calc.shaft_angle_rad_old = m->calc.shaft_angle_rad;
     m->calc.el_angle_rad_old = m->calc.el_angle_rad;
 
-    return bldc_motor_drive_phase_voltage(m, m->set.vq, 0, m->calc.el_angle_rad);
+    //return bldc_motor_drive_phase_voltage(m, m->set.vq, 0, m->calc.el_angle_rad);
 
     m->calc.alpha_out = m->set.vq * sin(m->calc.el_angle_rad);
     m->calc.beta_out  = m->set.vq * cos(m->calc.el_angle_rad);

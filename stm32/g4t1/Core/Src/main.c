@@ -145,7 +145,7 @@ int main(void)
   bldc_driver_enable(&md1);
   //bldc_driver_set_pwm(&md1, 100, 200, 300);
   bldc_motor_enable(&m1);
-  m1.set.vq = 1.1f;
+  m1.set.vq = 0.45f;
 
   //while(1);
 
@@ -186,7 +186,10 @@ int main(void)
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.el_angle_rad, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, as1.raw_angle);
-	  //str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.angle_rad, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, as1.angle_rad, 5);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, as1.angle_rad_filtered, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.d_out, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
