@@ -35,6 +35,8 @@ typedef struct {
 		float speed_rad_s; /// current speed, angle velocity in rad / s
         float u_in, v_in, w_in; /// input to clarke transformation
         float el_angle_rad; ///
+        uint16_t adc_u, adc_v, adc_w;
+        uint16_t adc_poti, adc_ntc
     } current;
     struct {
         float shaft_angle_rad; /// 

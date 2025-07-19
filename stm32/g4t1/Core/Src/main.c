@@ -87,6 +87,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint32_t now, last_tick, waitcnt;
 	float dt, sum_dt, tim_dt;
+	uint16_t state_cnt;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -166,6 +167,11 @@ int main(void)
   sum_dt = 0.0f;
   tim_dt = 0.0f;
 
+  state_cnt = 0;
+  bldc_motor_set_target_speed(&m1, 10.0f);
+  m1.set.vq = 0.45f;
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -191,9 +197,15 @@ int main(void)
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, as1.angle_rad_filtered, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
-	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.d_out, 5);
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.adc_u);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
-	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.q_out, 5);
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.adc_v);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.adc_w);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.adc_poti);
+	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
+	  str_buf_append_uint16(main_str_buf, MAIN_STR_BUF_SIZE, m1.current.adc_ntc);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
 	  str_buf_append_float(main_str_buf, MAIN_STR_BUF_SIZE, m1.calc.u_out, 5);
 	  str_buf_append_string(main_str_buf, MAIN_STR_BUF_SIZE, ",");
@@ -223,6 +235,38 @@ int main(void)
 	  		  bldc_motor_set_target_angle_deg(&m1, 90.0f);
 	  		  bldc_motor_enable(&m1);
 	  		  */
+	  		  switch(state_cnt) {
+	  		  case 0:
+	  			  state_cnt = 1;
+	  			  bldc_motor_set_target_speed(&m1, 20.0f);
+	  			  m1.set.vq = 0.55f;
+	  			  break;
+			  case 1:
+				  state_cnt = 2;
+				  bldc_motor_set_target_speed(&m1, 30.0f);
+				  m1.set.vq = 0.65f;
+				  break;
+			  case 2:
+				  state_cnt = 3;
+				  bldc_motor_set_target_speed(&m1, 20.0f);
+				  m1.set.vq = 0.55f;
+				  break;
+			  case 3:
+				  state_cnt = 4;
+				  bldc_motor_set_target_speed(&m1, 5.0f);
+				  m1.set.vq = 0.35f;
+				  break;
+			  case 4:
+				  state_cnt = 5;
+				  bldc_motor_set_target_speed(&m1, 0.0f);
+				  m1.set.vq = 0.0f;
+				  break;
+			  case 5:
+				  state_cnt = 0;
+				  bldc_motor_set_target_speed(&m1, 10.0f);
+				  m1.set.vq = 0.45f;
+				  break;
+	  		  }
 	  	  }
 
     /* USER CODE END WHILE */

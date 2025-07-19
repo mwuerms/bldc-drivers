@@ -8,6 +8,7 @@
 #include "bldc_math.h"
 #include "calcs.h"
 #include <math.h>
+#include "adc.h"
 
 uint16_t bldc_motor_init(bldc_motor_t *m, bldc_driver_t *d, angle_sens_t *as) {
     if(m == NULL) {
@@ -342,6 +343,12 @@ static uint16_t bldc_motor_get_sensor_values(bldc_motor_t *m, float dt) {
     m->current.el_angle_rad = m->current.angle_rad * m->motor.nb_pole_pairs;
     m->current.angle_rad_old = m->current.angle_rad;
     // get u, v, w coil currents
+    m->current.adc_u = ADC_GET_CURRENT_U();
+    m->current.adc_v = ADC_GET_CURRENT_V();
+    m->current.adc_w = ADC_GET_CURRENT_W();
+
+    m->current.adc_poti = ADC_GET_POTI();
+    m->current.adc_ntc = ADC_GET_NTC();
     return true;
 }
 

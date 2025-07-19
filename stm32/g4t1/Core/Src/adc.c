@@ -198,4 +198,31 @@ void MX_ADC2_Init(void)
 
 /* USER CODE BEGIN 1 */
 
+uint16_t adc_read_channel(ADC_TypeDef *adc, uint32_t ch) {
+	uint16_t res;
+
+	LL_ADC_Enable(adc);
+    // Sequencer auf gewünschten Kanal setzen (Rank 1 = single conversion)
+    LL_ADC_REG_SetSequencerRanks(adc, LL_ADC_REG_RANK_1, ch);
+    // Sampling-Zeit für den Kanal setzen (kann für jeden Kanal individuell sein)
+    LL_ADC_SetChannelSamplingTime(adc, ch, LL_ADC_SAMPLINGTIME_12CYCLES_5);
+    LL_ADC_REG_StartConversion(adc);
+    while (LL_ADC_IsActiveFlag_EOC(adc) == 0);
+    res = LL_ADC_REG_ReadConversionData12(adc);
+    LL_ADC_ClearFlag_EOC(adc);
+
+    return res;
+}
+
+uint16_t adc_get_current_u(void) {
+	return adc_read_channel(ADC1, LL_ADC_CHANNEL_3);
+}
+
+uint16_t adc_get_current_v(void) {
+	return adc_read_channel(ADC2, LL_ADC_CHANNEL_3);
+}
+
+uint16_t adc_get_current_w(void) {
+	return adc_read_channel(ADC1, LL_ADC_CHANNEL_12);
+}
 /* USER CODE END 1 */
